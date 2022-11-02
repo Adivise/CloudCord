@@ -1,0 +1,8 @@
+{
+  "discord": {
+    "ClientID": "YOUR_APPLICTION_ID"
+  },
+  "soundcloud": {
+    "ClientID": "YOUR_SOUNDCLOUD_CLIENT_ID"
+  }
+}

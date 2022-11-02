@@ -1,0 +1,21 @@
+{
+  "name": "cloudcord",
+  "version": "1.0.1",
+  "description": "Adds Discord Rich Presence support to Soundcloud.",
+  "main": "index.js",
+  "dependencies": {
+    "cors": "^2.8.4",
+    "datauri": "^1.1.0",
+    "discord-rpc": "^4.0.1",
+    "express": "^4.16.3",
+    "hbs": "^4.0.1",
+    "request": "^2.87.0",
+    "request-promise-native": "^1.0.5",
+    "socket.io": "^2.1.1"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Adivise",
+  "license": "MIT"
+}
