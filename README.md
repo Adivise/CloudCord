@@ -17,7 +17,7 @@
 ## 📎 Requirements
 
 - Node.js v16+ **[Download](https://nodejs.org/en/download/)**
-- Tutorials **[Watch](https://github.com/Adivise/CloudCord)**
+- Tutorials **[Watch](https://youtu.be/fsblMzA0BDo)**
 
 ## 📚 Installation
 
