@@ -1,79 +1,155 @@
-#!/usr/bin/env node
+const { Client } = require('discord-rpc');
+const trace = require('debug')('soundcloud-rp:trace');
 
-/**
- * Module dependencies.
- */
+const WAIT_BETWEEN_TRIES = 10;
+const TIMEOUT = 10;
 
-var server = require('./structures/client');
+module.exports = (config) => {
 
-/**
- * Get port from environment and store in Express.
- */
+  class RPCWrapper {
+    constructor(config, rpc) {
+      trace("rpc.constructor");
 
-var port = normalizePort(process.env.PORT || '7769');
+      this._config = config;
+      this._rpc = rpc;
 
-/**
- * Listen on provided port, locally
- */
+      this.activity_timeout = 0;
+      this.current_activity = false;
 
-server.listen(port, "127.0.0.1");
-server.on('error', onError);
-server.on('listening', onListening);
+      this.initRPC();
+    }
 
-/**
- * Normalize a port into a number, string, or false.
- */
+    initRPC() {
+      trace("rpc.init");
 
-function normalizePort(val) {
-  var port = parseInt(val, 10);
+      this.status = false;
 
-  if (isNaN(port)) {
-    // named pipe
-    return val;
+      this._rpc.on('ready', () => {
+        trace("rpc.event.ready");
+      });
+
+      this.connect();
+    }
+
+    connect() {
+      trace("rpc.connect");
+      console.log("Connecting to discord...");
+
+      this._rpc.login({ clientId: this._config.discord.ClientID }).then(() => {
+        trace("rpc.connect.success");
+        console.log("Connected to discord!");
+
+        this.status = true;
+      }).catch((err) => {
+        trace("rpc.connect.fail");
+        this.status = false;
+
+        console.log("Failed to connect to discord", err);
+        console.log(`Trying again in ${WAIT_BETWEEN_TRIES} seconds...`);
+        setTimeout(() => {
+          this.connect()
+        }, WAIT_BETWEEN_TRIES * 1000);
+      });
+    }
+
+    setActivity(data) {
+      trace("rpc.setActivity", data);
+
+      function pad(str) {
+        while (str.length < 2)
+          str += " ";
+        return str;
+      }
+
+      data.details = pad(data.details);
+      data.state = pad(data.state);
+      data.largeImageText = pad(data.largeImageText);
+      data.smallImageText = pad(data.smallImageText);
+
+      this.current_activity = data;
+
+      // We need to timeout ourselves, this method doesn't throw any error
+      return new Promise((resolve, reject) => {
+
+        var request_timeout = setTimeout(() => {
+          trace("rpc.setActivity.fail");
+          this.status = false;
+          var err = new Error('RPC timeout.');
+
+          console.log("Failed to interact with discord", err);
+          console.log(`Reconnecting again in ${WAIT_BETWEEN_TRIES} seconds...`);
+          setTimeout(() => {
+            this.connect()
+          }, WAIT_BETWEEN_TRIES * 1000);
+
+          reject(err);
+        }, TIMEOUT * 1000);
+
+        this._rpc.setActivity(data).then(() => {
+          trace("rpc.setActivity.success");
+
+          clearTimeout(request_timeout);
+          resolve();
+        });
+      });
+    }
+
+    getActivity() {
+      trace("rpc.getActivity");
+      return this.current_activity;
+    }
+
+    clearActivity() {
+      trace("rpc.clearActivity");
+
+      this.current_activity = false;
+      this.clearActivityTimeout();
+
+      // We need to timeout ourselves, this method doesn't throw any error
+      return new Promise((resolve, reject) => {
+
+        var request_timeout = setTimeout(() => {
+          trace("rpc.clearActivity.fail");
+          this.status = false;
+          var err = new Error('RPC timeout.');
+
+          console.log("Failed to interact with discord", err);
+          console.log(`Reconnecting again in ${WAIT_BETWEEN_TRIES} seconds...`);
+          setTimeout(() => {
+            this.connect()
+          }, WAIT_BETWEEN_TRIES * 1000);
+
+          reject(err);
+        }, TIMEOUT * 1000);
+
+        this._rpc.clearActivity().then(() => {
+          trace("rpc.clearActivity.success");
+
+          clearTimeout(request_timeout);
+          resolve();
+        });
+      });
+    }
+
+    setActivityTimeout(timestamp) {
+      trace("rpc.setActivityTimeout", timestamp);
+      let now = Math.round(new Date().getTime() / 1000);
+
+      this.clearActivityTimeout();
+      this.activity_timeout = setTimeout(() => {
+        trace("rpc.setActivityTimeout.timeout");
+
+        this.clearActivity();
+      }, (timestamp - now) * 1000);
+    }
+
+    clearActivityTimeout() {
+      trace("rpc.clearActivityTimeout");
+      clearTimeout(this.activity_timeout);
+    }
   }
 
-  if (port >= 0) {
-    // port number
-    return port;
-  }
+  const rpc = new Client({ transport: 'ipc' });
 
-  return false;
-}
-
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
-
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
-}
-
-/**
- * Event listener for HTTP server "listening" event.
- */
-
-function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
-  console.log('Listening on ' + bind);
+  return new RPCWrapper(config, rpc);
 }

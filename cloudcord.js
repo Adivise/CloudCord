@@ -5,13 +5,13 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-const config = require('../config.json');
+const config = require('./config.json');
 
 if (config.soundcloud.ClientID == 'SOUDNCLOUD_CLIENT_ID') {
     throw new Error('Please edit the default soundcloud client_id before starting the server');
 }
 
-const rpc = require('./rpc.js')(config);
+const rpc = require('./index.js')(config);
 
 const app = express();
 const server = http.createServer(app);
@@ -24,11 +24,11 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 
-const client_routes = require('./routes.js');
+const client_routes = require('./structures/routes.js');
 
 app.use(client_routes);
 
-const client_protocol = require('./protocols.js')(config, io, rpc);
+const client_protocol = require('./structures/protocols.js')(config, io, rpc);
 
 app.use(function(err, req, res, next) {
   let data = {
