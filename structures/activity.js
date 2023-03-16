@@ -70,7 +70,7 @@ module.exports = (config, rpc) => {
         state: `by ${track_data.user.username}`,
         startTimestamp,
         endTimestamp,
-        largeImageKey: track_data.artwork_url,
+        largeImageKey: track_data.artwork_url ?? 'https://imgur.com/a/T3Bp7nq',
         largeImageText: track_data.title,
         smallImageKey: "https://i.imgur.com/kL9JNVF.png",
         smallImageText: track_data.user.username,
